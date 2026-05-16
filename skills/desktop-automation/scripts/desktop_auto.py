@@ -238,11 +238,17 @@ def clipboard_get() -> str:
 
 def clipboard_set(text: str):
     if OS == "Darwin":
-        _run(["pbcopy"], input=text)
+        subprocess.run(["pbcopy"], input=text, text=True)
     elif OS == "Windows":
-        _run(["powershell", "-Command", f"Set-Clipboard -Value '{text}'"])
+        subprocess.run(["powershell", "-Command", f"Set-Clipboard -Value '{text}'"], text=True)
     else:
-        _run(["xclip", "-selection", "clipboard"], input=text)
+        try:
+            subprocess.run(["xclip", "-selection", "clipboard", "-in"], input=text, text=True, timeout=3)
+        except:
+            try:
+                subprocess.run(["xsel", "--clipboard", "--input"], input=text, text=True, timeout=3)
+            except:
+                pass
 
 
 # ══════════════════════════════════════════════════════════
@@ -291,17 +297,16 @@ def main():
     sp = sub.add_parser("scroll"); sp.add_argument("clicks", type=int)
 
     cb = sub.add_parser("clipboard")
-    cb_sub = cb.add_subparsers(dest="cb_cmd")
-    cb_sub.add_parser("--get")
-    sp2 = cb_sub.add_parser("--set"); sp2.add_argument("text")
+    cb.add_argument("--get", action="store_true")
+    cb.add_argument("--set", type=str)
 
     args = parser.parse_args()
 
     if args.cmd == "clipboard":
-        if args.cb_cmd == "--get":
+        if args.get:
             print(clipboard_get())
-        elif args.cb_cmd == "--set":
-            clipboard_set(args.text)
+        elif args.set:
+            clipboard_set(args.set)
             print("✅ clipboard set")
         return
 
